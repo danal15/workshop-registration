@@ -1,0 +1,6 @@
+# compiler output
+/out/
+*.class
+
+# the course-supplied tester (not ours to redistribute)
+/tester/
