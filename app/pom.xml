@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- The runnable command line application (workshop-cli). -->
+    <parent>
+        <groupId>patmal.workshops.student.impl</groupId>
+        <artifactId>root</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>app</artifactId>
+
+    <dependencies>
+        <dependency>
+            <groupId>patmal.workshops.student.impl</groupId>
+            <artifactId>logic-impl</artifactId>
+        </dependency>
+
+        <!-- Main uses the API interfaces (WorkshopSystem, Instructor, Workshop) directly, so they are
+             declared here and not taken transitively. The logic jar has no pom, so model is declared too. -->
+        <dependency>
+            <groupId>patmal.workshops</groupId>
+            <artifactId>logic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>patmal.workshops</groupId>
+            <artifactId>model</artifactId>
+        </dependency>
+
+        <!-- Main logs through the API directly, so it is declared here and not taken transitively. -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+        </dependency>
+        <!-- The logging implementation: not needed to compile, only when the application runs. -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- The course tester: needed by the build (verify phase) only. Its scope, test, is managed in the
+             root pom, so shade leaves it out of the uber jar. -->
+        <dependency>
+            <groupId>patmal.workshops</groupId>
+            <artifactId>workshop-tester</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <!-- The jar of this module is target/workshop-cli.jar -->
+        <finalName>workshop-cli</finalName>
+
+        <plugins>
+            <!--
+              Uber jar: in the package phase, shade replaces workshop-cli.jar with a jar that holds
+              this module plus all its compile and runtime dependencies (test-scoped ones are left out).
+              The version comes from pluginManagement in the root pom.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <!-- Do not write a reduced copy of this pom next to the sources. -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <transformers>
+                                <!-- Main-Class makes "java -jar workshop-cli.jar" work. Multi-Release keeps
+                                     the Java 9+ classes that Log4j and Jackson ship for newer JDKs. -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>patmal.workshops.student.impl.app.Main</mainClass>
+                                    <manifestEntries>
+                                        <Multi-Release>true</Multi-Release>
+                                    </manifestEntries>
+                                </transformer>
+                                <!-- Merges META-INF/services files that several libraries contain. -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <!-- Most libraries carry the same Apache LICENSE file and their own NOTICE file:
+                                     keep one copy of the license and merge the notices into one file. -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheLicenseResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ApacheNoticeResourceTransformer"/>
+                            </transformers>
+                            <filters>
+                                <!-- Signature files and module descriptors of the libraries are meaningless
+                                     inside a merged jar (and would clash), so they are left out. -->
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                        <exclude>META-INF/versions/*/module-info.class</exclude>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>META-INF/MANIFEST.MF</exclude>
+                                        <exclude>META-INF/DEPENDENCIES</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+              Bonus: run the course tester as part of the build.
+              Step 1 (initialize phase): the "properties" goal sets one property per dependency, holding the
+              path of its jar in the local repository. We use ${patmal.workshops:workshop-tester:jar}.
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>properties</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!--
+              Step 2 (verify phase, after package built the uber jar): run the tester in a new JVM on
+              exactly the classpath of the guide: the tester jar + workshop-cli.jar.
+              The tester exits with 1 or 2 when something is wrong, and any exit code other than 0
+              fails the build. Skip it with -Dexec.skip=true.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>run-workshop-tester</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <!-- The same java that runs Maven -->
+                            <executable>${java.home}/bin/java</executable>
+                            <!-- The tester writes its export files here, not into the source folder -->
+                            <workingDirectory>${project.build.directory}</workingDirectory>
+                            <arguments>
+                                <!-- Only errors are logged during the tester run, to keep the build output short -->
+                                <argument>-Dworkshop.log.level=error</argument>
+                                <argument>-cp</argument>
+                                <argument>${patmal.workshops:workshop-tester:jar}${path.separator}${project.build.directory}/${project.build.finalName}.jar</argument>
+                                <argument>patmal.workshops.main.Main</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

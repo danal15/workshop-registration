@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Root: aggregator of core and app, and the top parent of every module. -->
+    <groupId>patmal.workshops.student.impl</groupId>
+    <artifactId>root</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>core</module>
+        <module>app</module>
+    </modules>
+
+    <properties>
+        <java.version>25</java.version>
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <!-- Course jars: installed into the local repository by hand (see README.md). -->
+        <workshops.api.version>2.0</workshops.api.version>
+        <workshops.tester.version>2.0</workshops.tester.version>
+
+        <!-- Third-party libraries -->
+        <log4j.version>2.26.1</log4j.version>
+        <jackson.version>2.23.0</jackson.version>
+        <commons-validator.version>1.11.0</commons-validator.version>
+
+        <!-- Plugin versions -->
+        <maven-clean-plugin.version>3.5.0</maven-clean-plugin.version>
+        <maven-resources-plugin.version>3.5.0</maven-resources-plugin.version>
+        <maven-compiler-plugin.version>3.16.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
+        <maven-jar-plugin.version>3.5.1</maven-jar-plugin.version>
+        <maven-install-plugin.version>3.2.0</maven-install-plugin.version>
+        <maven-deploy-plugin.version>3.2.0</maven-deploy-plugin.version>
+        <maven-shade-plugin.version>3.6.2</maven-shade-plugin.version>
+        <maven-dependency-plugin.version>3.11.0</maven-dependency-plugin.version>
+        <exec-maven-plugin.version>3.7.0</exec-maven-plugin.version>
+    </properties>
+
+    <!-- Every version is declared here once; child modules list dependencies without a version. -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Our own modules -->
+            <dependency>
+                <groupId>patmal.workshops.student.impl</groupId>
+                <artifactId>model-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>patmal.workshops.student.impl</groupId>
+                <artifactId>logic-impl</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <!-- Course API jars (interfaces only) -->
+            <dependency>
+                <groupId>patmal.workshops</groupId>
+                <artifactId>model</artifactId>
+                <version>${workshops.api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>patmal.workshops</groupId>
+                <artifactId>logic</artifactId>
+                <version>${workshops.api.version}</version>
+            </dependency>
+
+            <!-- Logging: the BOM manages the versions of every Log4j 2 artifact -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-bom</artifactId>
+                <version>${log4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- JSON: the BOM manages the versions of every Jackson artifact -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- E-mail validation -->
+            <dependency>
+                <groupId>commons-validator</groupId>
+                <artifactId>commons-validator</artifactId>
+                <version>${commons-validator.version}</version>
+            </dependency>
+
+            <!-- Course tester: only ever needed by the build, never packaged -->
+            <dependency>
+                <groupId>patmal.workshops</groupId>
+                <artifactId>workshop-tester</artifactId>
+                <version>${workshops.tester.version}</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-clean-plugin</artifactId>
+                    <version>${maven-clean-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-resources-plugin</artifactId>
+                    <version>${maven-resources-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>${maven-compiler-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>${maven-jar-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-install-plugin</artifactId>
+                    <version>${maven-install-plugin.version}</version>
+                </plugin>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-deploy-plugin</artifactId>
+                    <version>${maven-deploy-plugin.version}</version>
+                </plugin>
+                <!-- Builds the uber jar; activated only in app. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-shade-plugin</artifactId>
+                    <version>${maven-shade-plugin.version}</version>
+                </plugin>
+                <!-- Used by app to find the tester jar in the local repository. -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>${maven-dependency-plugin.version}</version>
+                </plugin>
+                <!-- Used by app to run the course tester in the verify phase. -->
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>exec-maven-plugin</artifactId>
+                    <version>${exec-maven-plugin.version}</version>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+</project>

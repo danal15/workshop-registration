@@ -1,6 +1,11 @@
-# compiler output
-/out/
-*.class
+# Maven build output
+target/
 
-# the course-supplied tester (not ours to redistribute)
-/tester/
+# IntelliJ (regenerated from the poms)
+.idea/
+*.iml
+
+# Files written by running workshop-cli
+/instructors.json
+/students.json
+/teams.json
